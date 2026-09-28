@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคิดเงินหน้าร้าน (POS)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .scan-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 12px 15px;
+            font-size: 18px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        
+        .total-box {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #e9f5ff;
+            border-radius: 8px;
+            text-align: right;
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .alert-error {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🛒 ระบบแคชเชียร์คิดเงิน</h2>
+    
+    <div class="scan-section">
+        <!-- ช่องรับค่าจากเครื่องยิงบาร์โค้ด -->
+        <input type="text" id="scan-input" placeholder="สแกนบาร์โค้ดสินค้า..." autofocus autocomplete="off">
+    </div>
+
+    <div id="error-msg" class="alert-error"></div>
+
+    <!-- ตารางแสดงรายการสินค้าที่ยิงสแกน -->
+    <table>
+        <thead>
+            <tr>
+                <th>รหัสสินค้า</th>
+                <th>ชื่อสินค้า</th>
+                <th class="text-center">จำนวน</th>
+                <th class="text-right">ราคา/ชิ้น</th>
+                <th class="text-right">ราคารวม</th>
+            </tr>
+        </thead>
+        <tbody id="cart-table">
+            <tr id="empty-row">
+                <td colspan="5" class="text-center" style="color: #888;">ยังไม่มีรายการสินค้า (สลับภาษาแป้นพิมพ์เป็น EN แล้วยิงสแกนได้เลย)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- สรุปยอดรวมทั้งหมด -->
+    <div class="total-box">
+        ยอดรวมทั้งหมด: <span id="grand-total">0</span> บาท
+    </div>
+</div>
+
+<script>
+    // 1. ฐานข้อมูลสินค้า (สามารถแก้ไข หรือเพิ่มรหัสบาร์โค้ดจริงลงไปตรงนี้ได้เลย)
+    const productDatabase = {
+        "10": { name: "ขนมปังโฮลวีต", price: 10 },
+        "20": { name: "น้ำส้มคั้นสด", price: 25 },
+        "885000000001": { name: "สมุดโน้ต A5", price: 35 },
+        "tinyurl.com": { name: "สินค้ารายการพิเศษ", price: 50 }
+    };
+
+    let cart = {}; // เก็บรายการสินค้าที่ถูกยิง
+    const scanInput = document.getElementById('scan-input');
+    const cartTable = document.getElementById('cart-table');
+    const grandTotalDisplay = document.getElementById('grand-total');
+    const errorMsg = document.getElementById('error-msg');
+
+    // 2. ดักจับการยิงจากเครื่องสแกน
+    scanInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            
+            let code = this.value.trim();
+            errorMsg.innerText = ''; // ล้างข้อความแจ้งเตือนเก่า
+
+            if (code !== '') {
+                // เช็กว่ารหัสบาร์โค้ดนี้มีในฐานข้อมูลหรือไม่
+                if (productDatabase[code]) {
+                    let product = productDatabase[code];
+
+                    // ถ้ามีสินค้านี้ในตะกร้าแล้ว ให้เพิ่มจำนวน (+1)
+                    if (cart[code]) {
+                        cart[code].qty += 1;
+                    } else {
+                        // ถ้ายังไม่มี ให้เพิ่มเข้าไปใหม่
+                        cart[code] = {
+                            name: product.name,
+                            price: product.price,
+                            qty: 1
+                        };
+                    }
+
+                    updateCartUI(); // อัปเดตตารางหน้าจอ
+                } else {
+                    errorMsg.innerText = `❌ ไม่พบข้อมูลสินค้ารหัส: ${code}`;
+                }
+
+                this.value = ''; // เคลียร์ช่องพิมพ์
+            }
+        }
+    });
+
+    // 3. ฟังก์ชันสำหรับอัปเดตตารางและคำนวณยอดรวม
+    function updateCartUI() {
+        cartTable.innerHTML = ''; // ล้างตารางเดิมก่อน
+        let grandTotal = 0;
+
+        // วนลูปนำรายการสินค้ามาแสดงในตาราง
+        for (let code in cart) {
+            let item = cart[code];
+            let itemTotal = item.price * item.qty;
+            grandTotal += itemTotal;
+
+            let row = `
+                <tr>
+                    <td>${code}</td>
+                    <td>${item.name}</td>
+                    <td class="text-center">${item.qty}</td>
+                    <td class="text-right">${item.price} ฿</td>
+                    <td class="text-right">${itemTotal} ฿</td>
+                </tr>
+            `;
+            cartTable.innerHTML += row;
+        }
+
+        // แสดงยอดรวมทั้งหมด
+        grandTotalDisplay.innerText = grandTotal.toLocaleString();
+    }
+
+    // ดึงเคอร์เซอร์กลับมาที่ช่องพิมพ์ตลอดเวลา
+    document.addEventListener('click', function() {
+        scanInput.focus();
+    });
+</script>
+
+</body>
+</html>

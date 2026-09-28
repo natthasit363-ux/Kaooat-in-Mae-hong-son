@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สร้างบาร์โค้ดแสดงเว็บไซต์</title>
+    <!-- ดึง Library JsBarcode มาช่วยแปลงข้อความ/ลิงก์เป็นรูปบาร์โค้ด -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #barcode-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>สร้างบาร์โค้ดจากลิงก์เว็บไซต์</h2>
+    
+    <!-- ช่องใส่ URL -->
+    <input type="text" id="url-input" value="https://www.google.com" placeholder="ใส่ลิงก์เว็บไซต์ที่นี่...">
+    <br>
+    <button onclick="makeBarcode()">สร้างบาร์โค้ด</button>
+
+    <div id="barcode-container">
+        <!-- รูปบาร์โค้ดจะแสดงตรงนี้ -->
+        <svg id="barcode"></svg>
+    </div>
+
+    <script>
+        function makeBarcode() {
+            let url = document.getElementById('url-input').value.trim();
+            
+            if (url !== '') {
+                // สร้างบาร์โค้ดชนิด CODE128 ซึ่งรองรับตัวอักษรและสัญลักษณ์ URL
+                JsBarcode("#barcode", url, {
+                    format: "CODE128",
+                    lineColor: "#000",
+                    width: 2,
+                    height: 80,
+                    displayValue: true // แสดง URL ใต้รูปบาร์โค้ด
+                });
+            }
+        }
+
+        // สร้างบาร์โค้ดเริ่มต้นทันทีที่เปิดหน้าเว็บ
+        makeBarcode();
+    </script>
+
+</body>
+</html>
