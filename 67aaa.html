@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบคิดเงินหน้าร้าน (POS)</title>
+    <title>ระบบคิดเงินหน้าร้าน (POS) + เงินทอน</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 700px;
+            max-width: 750px;
             margin: 30px auto;
             padding: 20px;
             background-color: #f4f6f9;
@@ -18,17 +18,14 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        h2 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        
         .scan-section {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-        input[type="text"] {
+        .scan-input {
             width: 80%;
             padding: 12px 15px;
             font-size: 18px;
@@ -37,6 +34,7 @@
             text-align: center;
             outline: none;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -47,45 +45,83 @@
             border-bottom: 1px solid #ddd;
             text-align: left;
         }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
+        th { background-color: #007bff; color: white; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        
-        .total-box {
-            margin-top: 25px;
+
+        /* ส่วนคำนวณเงินทอน */
+        .payment-section {
+            margin-top: 20px;
             padding: 15px;
-            background-color: #e9f5ff;
+            background-color: #f8f9fa;
             border-radius: 8px;
-            text-align: right;
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
+            border: 1px solid #e9ecef;
         }
+        .pay-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .pay-input {
+            width: 150px;
+            padding: 8px;
+            font-size: 18px;
+            text-align: right;
+            border: 2px solid #28a745;
+            border-radius: 6px;
+        }
+        .total-box { font-size: 22px; font-weight: bold; color: #007bff; }
+        .change-box { font-size: 24px; font-weight: bold; color: #28a745; }
+        .change-box.short { color: #dc3545; }
+
         .alert-error {
             color: #dc3545;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 5px;
             font-weight: bold;
             min-height: 24px;
         }
+        .btn-reset {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-reset:hover { background-color: #5a6268; }
     </style>
 </head>
 <body>
+       <header>
+        <nav>
+            <div class="logo">หมาด๋าม</div>
+            
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">หน้าหลัก</a></li>
+                <li><a href="bali1.html">บาลี1</a></li>
+                <li><a href="bali2.html">บาลี2</a></li>
+                <li><a href="aengsae.html">เพลงอมตะมหาทรงพลัง</a></li>
+                <li><a href="Myfamily.html"></a></li>
+            </ul>
+        </nav>
+    </header>
 
 <div class="container">
-    <h2>🛒 ระบบแคชเชียร์คิดเงิน</h2>
+    <h2>🛒 ระบบแคชเชียร์ + คำนวณเงินทอน</h2>
     
     <div class="scan-section">
-        <!-- ช่องรับค่าจากเครื่องยิงบาร์โค้ด -->
-        <input type="text" id="scan-input" placeholder="สแกนบาร์โค้ดสินค้า..." autofocus autocomplete="off">
+        <input type="text" id="scan-input" class="scan-input" placeholder="ยิงบาร์โค้ดสินค้า..." autofocus autocomplete="off">
     </div>
 
     <div id="error-msg" class="alert-error"></div>
 
-    <!-- ตารางแสดงรายการสินค้าที่ยิงสแกน -->
+    <!-- ตารางสินค้า -->
     <table>
         <thead>
             <tr>
@@ -103,45 +139,67 @@
         </tbody>
     </table>
 
-    <!-- สรุปยอดรวมทั้งหมด -->
-    <div class="total-box">
-        ยอดรวมทั้งหมด: <span id="grand-total">0</span> บาท
+    <!-- สรุปยอดเงินและคำนวณเงินทอน -->
+    <div class="payment-section">
+        <div class="pay-row total-box">
+            <span>ยอดรวมทั้งหมด:</span>
+            <span><span id="grand-total">0</span> บาท</span>
+        </div>
+        <div class="pay-row">
+            <span>รับเงินมา:</span>
+            <span>
+                <input type="number" id="cash-input" class="pay-input" placeholder="0" min="0"> บาท
+            </span>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
+        <div class="pay-row change-box" id="change-container">
+            <span>เงินทอน:</span>
+            <span><span id="change-total">0</span> บาท</span>
+        </div>
     </div>
+
+    <button class="btn-reset" onclick="resetCart()">เริ่มขายรายการใหม่ (Clear)</button>
 </div>
 
 <script>
-    // 1. ฐานข้อมูลสินค้า (สามารถแก้ไข หรือเพิ่มรหัสบาร์โค้ดจริงลงไปตรงนี้ได้เลย)
+    // ฐานข้อมูลสินค้าตัวอย่าง
     const productDatabase = {
-        "10": { name: "ขนมปังโฮลวีต", price: 10 },
-        "20": { name: "น้ำส้มคั้นสด", price: 25 },
-        "885000000001": { name: "สมุดโน้ต A5", price: 35 },
-        "tinyurl.com": { name: "สินค้ารายการพิเศษ", price: 50 }
+    "0110000000000007": { name: "ขนมปังปิ้ง(แผ่นละ)", price: 10 },
+        "0120000000000004": { name: "น้ำส้มคั้นสด", price: 25 },
+        "0188500000000102": { name: "สมุดโน้ต A5", price: 35 },
+        "0188500000000103": { name: "ผัดไทย", price: 40 },
+        "0188500000000104": { name: "ก๋วยเตี๊ยว", price: 35 },
+        "0188500000000105": { name: "กวยจั๊บ", price: 45 },
+        "0188500000000106": { name: "น้ำเปล่า", price: 5 },
+        "0188500000000107": { name: "น้ำอัดลม", price: 15 },
     };
 
-    let cart = {}; // เก็บรายการสินค้าที่ถูกยิง
+    let cart = {};
+    let grandTotal = 0;
+
     const scanInput = document.getElementById('scan-input');
+    const cashInput = document.getElementById('cash-input');
     const cartTable = document.getElementById('cart-table');
     const grandTotalDisplay = document.getElementById('grand-total');
+    const changeTotalDisplay = document.getElementById('change-total');
+    const changeContainer = document.getElementById('change-container');
     const errorMsg = document.getElementById('error-msg');
 
-    // 2. ดักจับการยิงจากเครื่องสแกน
+    // 1. รับค่าการยิงบาร์โค้ดสินค้า
     scanInput.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
             event.preventDefault();
             
             let code = this.value.trim();
-            errorMsg.innerText = ''; // ล้างข้อความแจ้งเตือนเก่า
+            errorMsg.innerText = '';
 
             if (code !== '') {
-                // เช็กว่ารหัสบาร์โค้ดนี้มีในฐานข้อมูลหรือไม่
                 if (productDatabase[code]) {
                     let product = productDatabase[code];
 
-                    // ถ้ามีสินค้านี้ในตะกร้าแล้ว ให้เพิ่มจำนวน (+1)
                     if (cart[code]) {
                         cart[code].qty += 1;
                     } else {
-                        // ถ้ายังไม่มี ให้เพิ่มเข้าไปใหม่
                         cart[code] = {
                             name: product.name,
                             price: product.price,
@@ -149,22 +207,23 @@
                         };
                     }
 
-                    updateCartUI(); // อัปเดตตารางหน้าจอ
+                    updateCartUI();
                 } else {
                     errorMsg.innerText = `❌ ไม่พบข้อมูลสินค้ารหัส: ${code}`;
                 }
 
-                this.value = ''; // เคลียร์ช่องพิมพ์
+                this.value = '';
             }
         }
     });
 
-    // 3. ฟังก์ชันสำหรับอัปเดตตารางและคำนวณยอดรวม
-    function updateCartUI() {
-        cartTable.innerHTML = ''; // ล้างตารางเดิมก่อน
-        let grandTotal = 0;
+    // 2. คำนวณเงินทอนเมื่อมีการพิมพ์จำนวนเงินที่รับมา
+    cashInput.addEventListener('input', calculateChange);
 
-        // วนลูปนำรายการสินค้ามาแสดงในตาราง
+    function updateCartUI() {
+        cartTable.innerHTML = '';
+        grandTotal = 0;
+
         for (let code in cart) {
             let item = cart[code];
             let itemTotal = item.price * item.qty;
@@ -182,13 +241,54 @@
             cartTable.innerHTML += row;
         }
 
-        // แสดงยอดรวมทั้งหมด
         grandTotalDisplay.innerText = grandTotal.toLocaleString();
+        calculateChange(); // คำนวณเงินทอนใหม่ทุกครั้งที่สินค้าเปลี่ยน
     }
 
-    // ดึงเคอร์เซอร์กลับมาที่ช่องพิมพ์ตลอดเวลา
-    document.addEventListener('click', function() {
+    // 3. ฟังก์ชันคำนวณเงินทอน
+    function calculateChange() {
+        let cashReceived = parseFloat(cashInput.value) || 0;
+        
+        if (grandTotal === 0) {
+            changeTotalDisplay.innerText = "0";
+            changeContainer.className = "pay-row change-box";
+            return;
+        }
+
+        let change = cashReceived - grandTotal;
+
+        if (change < 0) {
+            // กรณีรับเงินมาไม่พอ
+            changeTotalDisplay.innerText = `ขาดอีก ${Math.abs(change).toLocaleString()}`;
+            changeContainer.className = "pay-row change-box short";
+        } else {
+            // เงินพอดีหรือมีเงินทอน
+            changeTotalDisplay.innerText = change.toLocaleString();
+            changeContainer.className = "pay-row change-box";
+        }
+    }
+
+    // 4. ล้างหน้าจอเพื่อเริ่มขายบิลใหม่
+    function resetCart() {
+        cart = {};
+        grandTotal = 0;
+        cashInput.value = '';
+        cartTable.innerHTML = `
+            <tr id="empty-row">
+                <td colspan="5" class="text-center" style="color: #888;">ยังไม่มีรายการสินค้า</td>
+            </tr>
+        `;
+        grandTotalDisplay.innerText = '0';
+        changeTotalDisplay.innerText = '0';
+        errorMsg.innerText = '';
         scanInput.focus();
+    }
+
+    // ดึงเคอร์เซอร์กลับมาช่องยิงบาร์โค้ด
+    document.addEventListener('click', function(e) {
+        if (e.target !== cashInput) {
+            scanInput.focus();
+        }
     });
 </script>
 
