@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแคชเชียร์ (POS)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 700px; margin: 30px auto; padding: 20px; background: #f4f6f9; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .scan-section { display: flex; justify-content: center; margin-bottom: 15px; }
+        input[type="text"] { width: 80%; padding: 12px; font-size: 18px; border: 2px solid #007bff; border-radius: 8px; text-align: center; outline: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #007bff; color: white; }
+        .payment-box { margin-top: 20px; padding: 15px; background: #e9f5ff; border-radius: 8px; font-size: 18px; }
+        .pay-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        input[type="number"] { width: 140px; padding: 8px; font-size: 18px; text-align: right; border: 2px solid #28a745; border-radius: 6px; }
+        .btn-reset { width: 100%; padding: 12px; margin-top: 15px; background-color: #dc3545; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        .btn-reset:hover { background-color: #bd2130; }
+    </style>
+</head>
+<body>
+
+ <header>
+        <nav>
+            <div class="logo">หมาด๋าม</div>
+            
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">หน้าหลัก</a></li>
+                <li><a href="bali1.html">บาลี1</a></li>
+                <li><a href="bali2.html">บาลี2</a></li>
+                <li><a href="aengsae.html">เพลงอมตะมหาทรงพลัง</a></li>
+                <li><a href="Myfamily.html"></a></li>
+            </ul>
+        </nav>
+    </header>
+
+<div class="container">
+    <h2>💻 หน้าแคชเชียร์ (ยิงบาร์โค้ด)</h2>
+    
+    <div class="scan-section">
+        <input type="text" id="scan-input" placeholder="ยิงบาร์โค้ดสินค้าที่นี่..." autofocus autocomplete="off">
+    </div>
+    <div id="error-msg" style="color:red; text-align:center; min-height:24px; font-weight:bold;"></div>
+
+    <table>
+        <thead>
+            <tr><th>รหัสบาร์โค้ด</th><th>สินค้า</th><th>จำนวน</th><th>ราคา</th><th>รวม</th></tr>
+        </thead>
+        <tbody id="cart-table">
+            <tr><td colspan="5" style="text-align:center; color:#888;">สลับแป้นพิมพ์เป็น EN แล้วยิงสแกนได้เลย</td></tr>
+        </tbody>
+    </table>
+
+    <div class="payment-box">
+        <div class="pay-row">
+            <strong>ยอดรวมทั้งหมด:</strong>
+            <span style="color:#007bff; font-weight:bold; font-size:22px;"><span id="grand-total">0</span> บาท</span>
+        </div>
+        <div class="pay-row">
+            <span>รับเงินมา:</span>
+            <span><input type="number" id="cash-input" placeholder="0"> บาท</span>
+        </div>
+        <hr>
+        <div class="pay-row">
+            <strong>เงินทอน:</strong>
+            <span style="color:#28a745; font-weight:bold; font-size:22px;"><span id="change-total">0</span> บาท</span>
+        </div>
+    </div>
+
+    <button class="btn-reset" onclick="resetCart()">เริ่มขายรายการใหม่ (Clear)</button>
+</div>
+
+<script>
+    // ==========================================
+    // 📌 ใส่เลขบาร์โค้ด ชื่อสินค้า และราคาตรงนี้
+    // ==========================================
+    const productDatabase = {
+    "0188500000000102": { name: "ขนมปังโฮลวีตแผ่นละ", price: 10 },
+    "0120000000000004": { name: "น้ำส้มคั้นสด", price: 20 },
+    "0110000000000007": { name: "สมุด", price: 25 },
+    "0188500000000104": { name: "นมสดรสหวาน", price: 15 },
+    "0188500000000105": { name: "ผัดไทยธรรมดา", price: 35 },
+    "0188500000000106": { name: "ผัดไทยพิเศษ", price: 40 },
+    "0188500000000107": { name: "ข้าวโอ๊ต", price: 30 },
+    "0188500000000103": { name: "เค้กสตอเบอร์รี่", price: 55 }
+};
+
+    let cart = {};
+    const scanInput = document.getElementById('scan-input');
+    const cashInput = document.getElementById('cash-input');
+
+    scanInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let code = this.value.trim();
+            document.getElementById('error-msg').innerText = '';
+
+            if (code !== '') {
+                if (productDatabase[code]) {
+                    if (cart[code]) {
+                        cart[code].qty++;
+                    } else {
+                        cart[code] = { name: productDatabase[code].name, price: productDatabase[code].price, qty: 1 };
+                    }
+                    updateSystem();
+                } else {
+                    document.getElementById('error-msg').innerText = `❌ ไม่พบรหัสสินค้า: ${code}`;
+                }
+                this.value = '';
+            }
+        }
+    });
+
+    cashInput.addEventListener('input', updateSystem);
+
+    function updateSystem() {
+        let cartArray = [];
+        let grandTotal = 0;
+        let tableHtml = '';
+
+        for (let code in cart) {
+            let item = cart[code];
+            let itemTotal = item.price * item.qty;
+            grandTotal += itemTotal;
+            cartArray.push({ name: item.name, qty: item.qty, price: item.price, total: itemTotal });
+            
+            tableHtml += `
+                <tr>
+                    <td>${code}</td>
+                    <td>${item.name}</td>
+                    <td>${item.qty}</td>
+                    <td>${item.price} ฿</td>
+                    <td>${itemTotal} ฿</td>
+                </tr>
+            `;
+        }
+
+        document.getElementById('cart-table').innerHTML = tableHtml || `<tr><td colspan="5" style="text-align:center; color:#888;">ไม่มีรายการสินค้า</td></tr>`;
+        document.getElementById('grand-total').innerText = grandTotal.toLocaleString();
+
+        let cash = parseFloat(cashInput.value) || 0;
+        let change = cash >= grandTotal ? cash - grandTotal : 0;
+        document.getElementById('change-total').innerText = change.toLocaleString();
+
+        // ส่งข้อมูลไปยังหน้าจอแสดงผลลูกค้าแบบ Real-time ผ่าน localStorage
+        localStorage.setItem('pos_display_data', JSON.stringify({
+            cart: cartArray,
+            grandTotal: grandTotal,
+            change: change
+        }));
+    }
+
+    function resetCart() {
+        cart = {};
+        cashInput.value = '';
+        updateSystem();
+        scanInput.focus();
+    }
+
+    // ดึงโฟกัสเคอร์เซอร์กลับเข้าช่องยิงสแกนเสมอ
+    document.addEventListener('click', (e) => {
+        if (e.target !== cashInput) scanInput.focus();
+    });
+</script>
+
+</body>
+</html>

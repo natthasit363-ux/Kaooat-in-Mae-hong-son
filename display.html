@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าจอแสดงผลสำหรับลูกค้า (Customer Display)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            background: #0f172a; color: #f8fafc;
+            height: 100vh;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .header { background: #1e293b; padding: 15px; text-align: center; border-bottom: 2px solid #334155; }
+        .header h1 { margin: 0; color: #38bdf8; font-size: 28px; letter-spacing: 1px; }
+        .content-container { padding: 20px 30px; flex-grow: 1; overflow-y: auto; }
+        table {
+            width: 100%; border-collapse: collapse; background: #1e293b;
+            border-radius: 12px; overflow: hidden; font-size: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        th, td { padding: 16px 20px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background: #334155; color: #0284c7; font-size: 18px; }
+        .summary-box { display: flex; justify-content: space-between; margin-top: 25px; gap: 20px; }
+        .card { flex: 1; background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .card h3 { margin: 0; color: #94a3b8; font-size: 18px; }
+        .card .amount { font-size: 42px; font-weight: bold; margin-top: 8px; }
+        .total-card { border: 2px solid #f59e0b; }
+        .total-card .amount { color: #fbbf24; }
+        .change-card { border: 2px solid #10b981; }
+        .change-card .amount { color: #34d399; }
+
+        /* แถบเวลาและวันที่เรียลไทม์ด้านล่าง */
+        .footer-clock-bar {
+            background: #0284c7; color: white;
+            padding: 12px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 18px; font-weight: 500;
+        }
+        .clock-time {
+            font-size: 22px; font-weight: bold; font-family: monospace;
+            background: rgba(0, 0, 0, 0.2); padding: 4px 12px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🛒 ยินดีต้อนรับ (CUSTOMER DISPLAY)</h1>
+    </div>
+
+    <div class="content-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>รายการสินค้า</th>
+                    <th style="text-align: center;">จำนวน</th>
+                    <th style="text-align: right;">ราคา/ชิ้น</th>
+                    <th style="text-align: right;">ราคารวม</th>
+                </tr>
+            </thead>
+            <tbody id="display-table">
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #64748b; padding: 40px;">
+                        ยินดีต้อนรับครับ/ค่ะ
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="summary-box">
+            <div class="card total-card">
+                <h3>ยอดชำระทั้งหมด</h3>
+                <div class="amount"><span id="display-total">0</span> ฿</div>
+            </div>
+            <div class="card change-card">
+                <h3>เงินทอน</h3>
+                <div class="amount"><span id="display-change">0</span> ฿</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบแสดงวันที่และเวลาแบบเรียลไทม์ -->
+    <div class="footer-clock-bar">
+        <div id="clock-date">วัน... ที่ ... ... ....</div>
+        <div class="clock-time" id="clock-time">00:00:00</div>
+    </div>
+
+    <script>
+        // ดักจับข้อมูลเรียลไทม์ที่ส่งมาจากหน้า pos.html
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'pos_display_data') {
+                let data = JSON.parse(event.newValue);
+                updateCustomerUI(data);
+            }
+        });
+
+        function updateCustomerUI(data) {
+            let tableHtml = '';
+            
+            if (!data.cart || data.cart.length === 0) {
+                tableHtml = `<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 40px;">ยินดีต้อนรับครับ/ค่ะ</td></tr>`;
+            } else {
+                data.cart.forEach(item => {
+                    tableHtml += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td style="text-align: center;">${item.qty}</td>
+                            <td style="text-align: right;">${item.price.toLocaleString()} ฿</td>
+                            <td style="text-align: right;">${item.total.toLocaleString()} ฿</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('display-table').innerHTML = tableHtml;
+            document.getElementById('display-total').innerText = data.grandTotal.toLocaleString();
+            document.getElementById('display-change').innerText = data.change.toLocaleString();
+        }
+
+        // ระบบนาฬิกาเรียลไทม์ภาษาไทย
+        function updateClock() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('th-TH', dateOptions);
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+
+</body>
+</html>
